@@ -89,7 +89,7 @@ The client registers three major operational helper tools mapped directly to you
 You must expose your API key token to authorize secure handshakes with Google's foundation endpoint systems, alongside your platform's base entry address link if it runs inside an external docker wrapper:
 
 ```bash
-export GEMINI_API_KEY="AIzaSy..."
+export GEMINI_API_KEY="Your api key..."
 export API_GW_URL="http://localhost:8000"
 ```
 
