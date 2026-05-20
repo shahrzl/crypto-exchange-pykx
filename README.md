@@ -1,9 +1,6 @@
-# crypto-exchange-pykx
-A centralized crypto exchange based on KDBX and Python
-
 # ⚡ crypto-exchange-pykx
 
-An POC, low-latency automated market-making and order-matching platform. This event-driven architecture leverages **FastAPI** for client gateway access, **NATS** for high-throughput microservice communication, and a dual-node **kdb+/q (PyKX)** data engine for real-time streaming market depth and transactional persistence.
+A POC, low-latency automated market-making and order-matching platform. This event-driven architecture leverages **FastAPI** for client gateway access, **NATS** for high-throughput microservice communication, and a dual-node **kdb+/q (PyKX)** data engine for real-time streaming market depth and transactional persistence.
 
 ---
 
