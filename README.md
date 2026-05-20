@@ -3,21 +3,21 @@ A centralized crypto exchange based on KDBX and Python
 
        [ OKX Exchange WebSockets ]
                    │
-                   ▼ (Real-time Order Book Depth)
+                   ▼ (Real-time Order Book Depth Arrays)
              +------------+
 
              | okx_sub.py |
              +------------+
                    │
                    ├───────────────────────────────┐
-                   ▼ (JSON via NATS PubSub)        ▼ (PyKX Async .u.upd)
+                   ▼ (JSON via NATS PubSub)        ▼ (PyKX Async .u.upd Pipeline)
            Topic: "quotes.BTCUSDT"          +-------------------------+
-                   │                        |  orders.q (Port 5000)   |
+                   │                        |   tick.q (Port 5001)    |
                    ▼                        |                         |
        +─────────────────────────+          |  [quotes table]         |
 
-       | market_making_algo.py   |          |  - Multiplies Bids/Asks |
-       +─────────────────────────+          |    by 0.99 / 1.01       |
+       | market_making_algo.py   |          |  - Heavy Timeseries LOB |
+       +─────────────────────────+          |    Market Depth Storage |
                    │                        +-------------------------+
                    │ (NATS Request-Reply Loop)
                    │ - Clears old orders via "orders.cancel"
@@ -28,26 +28,24 @@ A centralized crypto exchange based on KDBX and Python
        |   matching_engine.py    |          |   position_tracker.py   |
        +─────────────────────────+          +─────────────────────────+
                    │                                     ▲
-                   ├──────────────────────────────┐      │
-                   ▼ (PyKX Ingestion API Stream)   │      │ (Vectorised q Queries)
-       +──────────────────────────────────────+   │      │ - Calculates Net Volume
+                   │                                     │ (Vectorised q Queries)
+                   ▼ (PyKX Ingestion API Stream)         │ - Calculates Net Volume
+       +──────────────────────────────────────+          │ - Aggregates Realised PnL
 
-       |        orders.q (Port 5000)          |   │      │ - Aggregates Realised PnL
-       |                                      |   │      │
-       |  [orders table] (Keyed on orderID)   |   │      │
-       |  - IF side=`cancel -> UPSERT (Update) |   │      │
-       |  - ELSE           -> INSERT (New)    |   │      │
-       |                                      |   │      │
-       |  [executions table]                  |   │      │
-       |  - Always         -> INSERT (Append) |   │      │
-       +──────────────────────────────────────+   │      │
-                                                  ▼      ▼ (NATS Request-Reply)
-                                           Topic: "account.positions"
-                                                  ▲
-                                                  │
-                                            +------------+
-  [ Client REST Endpoints ] ──────────────> | api_gw.py  |
-  - POST /api/order/market                  +------------+
+       |        orders.q (Port 5000)          |          │
+       |                                      |          │
+       |  [orders table] (Keyed on orderID)   |──────────┘
+       |  - IF side=`cancel -> UPSERT (Update) |
+       |  - ELSE           -> INSERT (New)    |          ▼ (NATS Request-Reply)
+       |                                      |   Topic: "account.positions"
+       |  [executions table]                  |          ▲
+       |  - Always         -> INSERT (Append) |          │
+       +──────────────────────────────────────+    +------------+
+
+                                                   | api_gw.py  |
+                                                   +------------+
+                                                         ▲
+  [ Client REST Endpoints ] ─────────────────────────────┘
+  - POST /api/order/market
   - POST /api/order/limit
   - GET  /api/account/position
-
