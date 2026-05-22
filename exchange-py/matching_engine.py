@@ -66,12 +66,14 @@ async def order_processor(msg, tp):
                     kx.TimestampAtom(now),
                     kx.SymbolAtom(symbol),
                     kx.SymbolAtom(target_id),
+                    kx.SymbolAtom("cancel"), # msgtype
+                    kx.SymbolAtom(""),      # ordtype (empty symbol for cancels)
                     kx.SymbolAtom("cancel"),
                     kx.FloatAtom(0.0),
                     kx.FloatAtom(0.0),
                     kx.SymbolAtom(client_id)
                 ]
-                tp('.u.upd', 'orders', cancel_payload, wait=False)
+                tp('.u.upd', 'orders_audit', cancel_payload, wait=False)
                 
                 response_payload = {"status": "cancelled", "order_id": target_id}
             else:
@@ -105,16 +107,26 @@ async def order_processor(msg, tp):
             engine.add_order(limit_order)
         
         # Log Creation to kdb+ Tickerplant
+        # Determine msgtype and ordtype for logging
+        msgtype_val = "new"
+        ordtype_val = ""
+        if "market" in subject:
+            ordtype_val = "market"
+        elif "limit" in subject:
+            ordtype_val = "limit"
+
         orders_payload = [
             kx.TimestampAtom(now),
             kx.SymbolAtom(symbol),
             kx.SymbolAtom(order_id),
+            kx.SymbolAtom(msgtype_val),
+            kx.SymbolAtom(ordtype_val),
             kx.SymbolAtom(side_str),
             kx.FloatAtom(price_logged),
             kx.FloatAtom(quantity),
             kx.SymbolAtom(client_id)
         ]
-        tp('.u.upd', 'orders', orders_payload, wait=False)
+        tp('.u.upd', 'orders_audit', orders_payload, wait=False)
 
         # Match Order Book and Track Executions
         results = engine.match()
